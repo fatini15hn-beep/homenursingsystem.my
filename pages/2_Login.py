@@ -1,11 +1,9 @@
 import streamlit as st
 import database as db
 
-
 # =========================================================
 # PAGE SETTINGS
 # =========================================================
-
 st.set_page_config(
     page_title="Login - Portal System",
     layout="wide",
@@ -14,348 +12,120 @@ st.set_page_config(
 
 db.inject_top_navbar()
 
-
 # =========================================================
-# SESSION STATE
+# SESSION STATE INITIALIZATION
 # =========================================================
-
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-
 if "user_role" not in st.session_state:
     st.session_state.user_role = None
-
 if "username_display" not in st.session_state:
     st.session_state.username_display = None
-
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
-
-
-# =========================================================
-# LOGIN PAGE
-# =========================================================
 
 st.write("## Log Masuk Portal Sistem")
 st.markdown("---")
 
-
 # =========================================================
-# IF ALREADY LOGGED IN
+# JIKA PENGGUNA SUDAH AKTIF LOG MASUK (PAUTAN PINTAS KEMBALI)
 # =========================================================
-
 if st.session_state.logged_in:
-
-    st.warning(
-        f"Anda sedang aktif log masuk sebagai "
-        f"{st.session_state.user_role} "
-        f"({st.session_state.username_display})."
-    )
-
-    if st.button(
-        "Log Keluar Semasa",
-        type="secondary"
-    ):
-
-        st.session_state.logged_in = False
-        st.session_state.user_role = None
-        st.session_state.username_display = None
-        st.session_state.user_id = None
-
-        st.rerun()
-
+    st.info(f"✨ Sesi Aktif: Anda telah log masuk sebagai **{st.session_state.user_role}** ({st.session_state.username_display}).")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Masuk Ke Dashboard Anda ➡️", type="primary"):
+            if st.session_state.user_role == "Admin":
+                st.switch_page("pages/3_Admin_Dashboard.py")
+            elif st.session_state.user_role == "Nurse":
+                st.switch_page("pages/4_Nurse_Dashboard.py")
+            elif st.session_state.user_role == "Patient":
+                st.switch_page("pages/5_Patient_Dashboard.py")
+            elif st.session_state.user_role == "Healthcare Provider":
+                st.switch_page("pages/6_HealthcareProvider_Dashboard.py")
+    
+    with col2:
+        if st.button("Log Keluar Semasa", type="secondary"):
+            st.session_state.logged_in = False
+            st.session_state.user_role = None
+            st.session_state.username_display = None
+            st.session_state.user_id = None
+            st.rerun()
 
 # =========================================================
-# LOGIN FORM
+# BORANG LOG MASUK UTAMA
 # =========================================================
-
 else:
+    username = st.text_input("Username (Nama Anda)")
+    password = st.text_input("Password", type="password")
+    role = st.selectbox("Pilih Peranan Anda", ["Admin", "Nurse", "Patient", "Healthcare Provider"])
 
-    username = st.text_input(
-        "Username (Nama Anda)"
-    )
-
-    password = st.text_input(
-        "Password",
-        type="password"
-    )
-
-    role = st.selectbox(
-        "Pilih Peranan Anda",
-        [
-            "Admin",
-            "Nurse",
-            "Patient"
-        ]
-    )
-
-
-    # =====================================================
-    # LOGIN BUTTON
-    # =====================================================
-
-    if st.button(
-        "Log Masuk",
-        type="primary"
-    ):
-
+    if st.button("Log Masuk", type="primary"):
         if username and password:
-
-            # =================================================
-            # ADMIN LOGIN
-            # =================================================
-
+            
+            # --- 1. ADMIN LOGIN ---
             if role == "Admin":
-
-                if (
-                    username.lower() == "ali"
-                    and password == "1234"
-                ):
-
+                if username.lower() == "ali" and password == "1234":
                     st.session_state.logged_in = True
-
                     st.session_state.user_role = "Admin"
-
                     st.session_state.username_display = "Ali"
-
-                    # User ID untuk notification
                     st.session_state.user_id = "ADMIN_ALI"
-
-                    # Pastikan notification database wujud
-                    db.initialize_notification_db()
-
-                    st.success(
-                        "Akses Admin diberikan!"
-                    )
-
-                    st.rerun()
-
+                    st.success("Akses Admin diberikan!")
+                    
+                    st.switch_page("pages/3_Admin_Dashboard.py")
                 else:
+                    st.error("Ralat! Hanya Admin bernama 'Ali' dengan password sah dibenarkan.")
 
-                    st.error(
-                        "Ralat! Hanya Admin bernama "
-                        "'Ali' dengan password sah "
-                        "dibenarkan."
-                    )
-
-
-            # =================================================
-            # NURSE LOGIN
-            # =================================================
-
+            # --- 2. NURSE LOGIN ---
             elif role == "Nurse":
-
-                if (
-                    username.lower() == "aina"
-                    and password == "1234"
-                ):
-
+                if username.lower() == "aina" and password == "1234":
                     st.session_state.logged_in = True
-
                     st.session_state.user_role = "Nurse"
-
                     st.session_state.username_display = "Aina"
-
-                    # Nurse Aina ID
                     st.session_state.user_id = "N001"
-
-                    db.initialize_notification_db()
-
-                    st.success(
-                        "Akses Jururawat diberikan! "
-                        "Selamat bertugas Nurse Aina."
-                    )
-
-                    st.rerun()
-
-
-                elif (
-                    username.lower() == "fatimah"
-                    and password == "1234"
-                ):
-
+                    st.success("Akses Jururawat diberikan! Selamat bertugas Nurse Aina.")
+                    
+                    st.switch_page("pages/4_Nurse_Dashboard.py")
+                elif username.lower() == "fatimah" and password == "1234":
                     st.session_state.logged_in = True
-
                     st.session_state.user_role = "Nurse"
-
                     st.session_state.username_display = "Fatimah"
-
-                    # Nurse Fatimah ID
                     st.session_state.user_id = "N002"
-
-                    db.initialize_notification_db()
-
-                    st.success(
-                        "Akses Jururawat diberikan! "
-                        "Selamat bertugas Nurse Fatimah."
-                    )
-
-                    st.rerun()
-
-
+                    st.success("Akses Jururawat diberikan! Selamat bertugas Nurse Fatimah.")
+                    
+                    st.switch_page("pages/4_Nurse_Dashboard.py")
                 else:
+                    st.error("Ralat! Hanya Jururawat 'Aina' atau 'Fatimah' yang berdaftar dibenarkan.")
 
-                    st.error(
-                        "Ralat! Hanya Jururawat "
-                        "'Aina' atau 'Fatimah' "
-                        "yang berdaftar dibenarkan."
-                    )
-
-
-            # =================================================
-            # PATIENT LOGIN
-            # =================================================
-
+            # --- 3. DYNAMIC PATIENT LOGIN (Mengambil Data dari SQLite) ---
             elif role == "Patient":
-
-                # -------------------------------------------------
-                # PATIENT 01
-                # -------------------------------------------------
-
-                if username.lower() in [
-                    "patient_01",
-                    "patient01",
-                    "ahmad"
-                ]:
-
+                df_pt = db.get_patients_df()
+                match = df_pt[df_pt['name'].str.lower() == username.lower()]
+                
+                if not match.empty and password == "1234":
+                    patient_data = match.iloc[0]
                     st.session_state.logged_in = True
-
                     st.session_state.user_role = "Patient"
-
-                    st.session_state.username_display = "Ahmad Patient"
-
-                    # Patient ID
-                    st.session_state.user_id = "P001"
-
-                    db.initialize_notification_db()
-
-                    st.success(
-                        "Akses Pesakit diberikan! "
-                        "Selamat datang Ahmad Patient."
-                    )
-
-                    st.rerun()
-
-
-                # -------------------------------------------------
-                # PATIENT 02
-                # -------------------------------------------------
-
-                elif username.lower() in [
-                    "patient_02",
-                    "patient02",
-                    "zaki"
-                ]:
-
-                    st.session_state.logged_in = True
-
-                    st.session_state.user_role = "Patient"
-
-                    st.session_state.username_display = "Zaki Patient"
-
-                    # Patient ID
-                    st.session_state.user_id = "P002"
-
-                    db.initialize_notification_db()
-
-                    st.success(
-                        "Akses Pesakit diberikan! "
-                        "Selamat datang Zaki Patient."
-                    )
-
-                    st.rerun()
-
-
-                # -------------------------------------------------
-                # PATIENT 03
-                # -------------------------------------------------
-
-                elif username.lower() in [
-                    "patient_03",
-                    "patient03",
-                    "alia"
-                ]:
-
-                    st.session_state.logged_in = True
-
-                    st.session_state.user_role = "Patient"
-
-                    st.session_state.username_display = "Alia Patient"
-
-                    # Patient ID
-                    st.session_state.user_id = "P003"
-
-                    db.initialize_notification_db()
-
-                    st.success(
-                        "Akses Pesakit diberikan! "
-                        "Selamat datang Alia Patient."
-                    )
-
-                    st.rerun()
-
-
+                    st.session_state.username_display = patient_data['name']
+                    st.session_state.user_id = patient_data['id']
+                    st.success(f"Akses Pesakit diberikan! Selamat datang {patient_data['name']}.")
+                    
+                    st.switch_page("pages/5_Patient_Dashboard.py")
                 else:
-
-                    st.error(
-                        "Username Patient tidak dijumpai."
-                    )
-
-
+                    st.error("Ralat! Nama pesakit tidak dijumpai dalam pangkalan data atau kata laluan salah.")
+                    
+            # --- 4. HEALTHCARE PROVIDER LOGIN ---
+            elif role == "Healthcare Provider":
+                if username.lower() == "shahmi" and password == "1234":
+                    st.session_state.logged_in = True
+                    st.session_state.user_role = "Healthcare Provider"
+                    st.session_state.username_display = "Shahmi"
+                    st.session_state.user_id = "H001"
+                    st.success("Akses Healthcare Provider Shahmi diberikan!")
+                    
+                    st.switch_page("pages/6_HealthcareProvider_Dashboard.py")
+                else:
+                    st.error("Ralat! Username atau password Healthcare Provider salah.")
         else:
-
-            st.error(
-                "Sila isi username dan password."
-            )
-
-
-# =========================================================
-# QUICK DASHBOARD ACCESS
-# =========================================================
-
-if st.session_state.logged_in:
-
-    st.markdown("---")
-
-    st.write(
-        "### Akses Pantas Dashboard Anda:"
-    )
-
-
-    # =====================================================
-    # ADMIN
-    # =====================================================
-
-    if st.session_state.user_role == "Admin":
-
-        st.page_link(
-            "pages/3_Admin_Dashboard.py",
-            label="Buka Admin Dashboard",
-            icon="📋"
-        )
-
-
-    # =====================================================
-    # NURSE
-    # =====================================================
-
-    elif st.session_state.user_role == "Nurse":
-
-        st.page_link(
-            "pages/4_Nurse_Dashboard.py",
-            label="Buka Nurse Dashboard",
-            icon="🩺"
-        )
-
-
-    # =====================================================
-    # PATIENT
-    # =====================================================
-
-    elif st.session_state.user_role == "Patient":
-
-        st.page_link(
-            "pages/5_Patient_Dashboard.py",
-            label="Buka Patient Dashboard",
-            icon="🛌"
-        )
+            st.warning("⚠️ Sila isi ruangan Username dan Password terlebih dahulu.")

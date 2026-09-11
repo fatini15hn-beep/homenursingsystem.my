@@ -1,154 +1,48 @@
 import streamlit as st
 import database as db
 
-
-def show_notifications(user_id):
-    """
-    Paparkan notification bell untuk user yang sedang login.
-    """
-
-    if not user_id:
-        return
-
-    # Ambil jumlah notification belum dibaca
-    unread_count = db.get_unread_notification_count(user_id)
-
-    # Notification button
-    if unread_count > 0:
-        button_text = f"🔔 {unread_count}"
-    else:
-        button_text = "🔔"
-
-    col1, col2, col3 = st.columns([7, 1, 1])
-
-    with col2:
-
-        if st.button(
-            button_text,
-            key="notification_button",
-            use_container_width=True
-        ):
-            st.session_state["show_notifications"] = not st.session_state.get(
-                "show_notifications",
-                False
-            )
-
-    # Paparkan notification
-    if st.session_state.get("show_notifications", False):
-
-        st.markdown(
-            """
-            <div style="
-                background:#ffffff;
-                padding:20px;
-                border-radius:12px;
-                border:1px solid #e5e7eb;
-                margin-top:10px;
-                box-shadow:0 4px 12px rgba(0,0,0,0.08);
-            ">
-                <h3 style="margin-top:0;">
-                    🔔 Notifications
-                </h3>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
+def render_notification_panel(user_id):
+    # Semak jika panel notifikasi dibuka
+    if st.session_state.get("show_notification_panel", False):
+        st.markdown("### 🔔 Mesej & Notifikasi Sistem")
+        
+        # Ambil senarai mesej dari database
         notifications = db.get_notifications(user_id)
-
+        
         if not notifications:
+            st.info("Tiada sebarang notifikasi baharu buat masa ini.")
+            return
 
-            st.info("No notifications available.")
-
-        else:
-
-            for notification in notifications:
-
-                notification_id = notification[0]
-                title = notification[1]
-                message = notification[2]
-                notification_type = notification[3]
-                is_read = notification[4]
-                created_at = notification[5]
-
-                if notification_type == "appointment":
-                    icon = "📅"
-
-                elif notification_type == "assessment":
-                    icon = "🩺"
-
-                elif notification_type == "medication":
-                    icon = "💊"
-
-                elif notification_type == "memo":
-                    icon = "📢"
-
-                elif notification_type == "alert":
-                    icon = "🚨"
-
-                else:
-                    icon = "🔵"
-
-                if is_read == 0:
-
-                    st.markdown(
-                        f"""
-                        <div style="
-                            background:#eff6ff;
-                            padding:15px;
-                            border-radius:10px;
-                            margin-bottom:10px;
-                            border-left:5px solid #2563eb;
-                        ">
-                            <b>{icon} {title}</b>
-                            <br>
-                            <span>{message}</span>
-                            <br>
-                            <small>{created_at}</small>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-                    if st.button(
-                        "Mark as read",
-                        key=f"read_{notification_id}"
-                    ):
-
-                        db.mark_notification_as_read(
-                            notification_id
-                        )
-
-                        st.rerun()
-
-                else:
-
-                    st.markdown(
-                        f"""
-                        <div style="
-                            background:#f8fafc;
-                            padding:15px;
-                            border-radius:10px;
-                            margin-bottom:10px;
-                            opacity:0.7;
-                        ">
-                            <b>{icon} {title}</b>
-                            <br>
-                            <span>{message}</span>
-                            <br>
-                            <small>{created_at}</small>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-        if notifications:
-
-            if st.button(
-                "Mark all as read",
-                key="mark_all_notifications"
-            ):
-
-                db.mark_all_notifications_as_read(user_id)
-
-                st.rerun()
+        # Sediakan butang untuk tanda semua sebagai dibaca
+        if st.button("Tanda Semua Telah Dibaca ✔️", key="mark_all_read_btn"):
+            db.mark_all_notifications_as_read(user_id)
+            st.success("Semua mesej ditanda sebagai dibaca!")
+            st.rerun()
+            
+        st.markdown("---")
+        
+        # Paparkan setiap mesej menggunakan kad reka bentuk yang cantik
+        for notif in notifications:
+            notif_id, title, message, notif_type, is_read, created_at = notif
+            
+            # Tentukan warna latar belakang berdasarkan status baca
+            bg_color = "#e2e8f0" if is_read else "#eff6ff"
+            border_color = "#cbd5e1" if is_read else "#3b82f6"
+            text_style = "color: #64748b;" if is_read else "color: #1e3a8a; font-weight: bold;"
+            
+            st.markdown(f"""
+                <div style="background-color: {bg_color}; border-left: 5px solid {border_color}; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="{text_style} font-size: 16px;">{title}</span>
+                        <span style="font-size: 11px; color: #94a3b8;">{created_at}</span>
+                    </div>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #334155;">{message}</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Jika mesej belum dibaca, paparkan butang individu untuk dibaca
+            if not is_read:
+                if st.button(f"Tanda Dibaca", key=f"read_{notif_id}"):
+                    db.mark_notification_as_read(notif_id)
+                    st.rerun()
+        st.markdown("---")
