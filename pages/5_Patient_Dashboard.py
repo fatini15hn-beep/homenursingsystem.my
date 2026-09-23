@@ -7,7 +7,7 @@ db.inject_top_navbar()
 
 # Semakan sekatan akses peranan (Hanya peranan Patient dibenarkan masuk)
 if "logged_in" not in st.session_state or not st.session_state.logged_in or st.session_state.user_role != "Patient":
-    st.error("🚫 Akses Disekat! Sila Log Masuk sebagai Pesakit untuk melihat rekod rawatan.")
+    st.error("🚫 Access Denied! Please log in as a patient to view treatment records.")
 else:
     # Header Dashboard Utama
     st.markdown(f"""
@@ -20,7 +20,7 @@ else:
     # =========================================================================
     # 1. PAPARAN SENARAI KESELURUHAN PROFIL PESAKIT
     # =========================================================================
-    st.write("### 👥 1. Maklumat Profil & Maklumat Asas Pesakit")
+    st.write("### 👥 1. Patient Profile & Basic Information")
     df_pt = db.get_patients_df()
     
     if not df_pt.empty:
@@ -31,27 +31,27 @@ else:
         # Memaparkan keseluruhan data profil pesakit
         st.dataframe(df_pt_clean, use_container_width=True, hide_index=True)
     else:
-        st.info("ℹ️ Tiada data profil pesakit dijumpai dalam pangkalan data.")
+        st.info("ℹ️ No patient profile data found in the database.")
     
     st.markdown("<br>", unsafe_allow_html=True)
     
     # =========================================================================
     # 2. PAPARAN SEJARAH KLINIKAL / LAPORAN PEMERIKSAAN RAWATAN (BERDASARKAN BORANG JURURAWAT)
     # =========================================================================
-    st.write("### 🩺 2. Rekod Pemeriksaan Klinikal & Cadangan Perawatan")
+    st.write("### 🩺 2. Clinical Examination Record & Treatment Recommendations")
     df_ass = db.get_assessments_df()
     
     if not df_ass.empty:
         # Susun kolum laporan rawatan dan gunakan nama berdasarkan Borang Data Perawatan
         df_ass_clean = df_ass[['id', 'patient_id', 'blood_pressure', 'pulse_rate', 'blood_sugar', 'wound_condition', 'nurse_memo']]
         df_ass_clean.columns = [
-            'No. Laporan', 
-            'ID Pesakit', 
-            'Tekanan Darah (Bacaan BP)', 
-            'Kadar Nadi (Nadi / minit)', 
-            'Tahap Gula Darah', 
-            'Keluhan Utama / Kondisi Luka', 
-            'Diagnosa & Cadangan Perawatan'
+            'Report No.', 
+            'Patient ID', 
+            'Blood Pressure (BP Reading)', 
+            'Pulse Rate (pulses/minute)', 
+            'Blood Sugar Levels', 
+            'Chief Complaint / Wound Condition', 
+            'Diagnosis & Treatment Recommendations'
         ]
         
         # Memaparkan keseluruhan data klinikal tanpa sebarang sekatan tapisan
@@ -61,15 +61,15 @@ else:
         st.markdown("""
             <div style='background-color: #f1f5f9; padding: 15px; border-left: 5px solid #0284c7; border-radius: 4px; margin-top: 15px;'>
                 <p style='margin: 0; font-size: 13px; color: #334155; font-weight: bold;'>
-                    📝 Nota Persetujuan Perawatan Terapi/Pengubatan:
+                    📝 Therapy/Medication Treatment Consent Note:
                 </p>
                 <p style='margin: 3px 0 0 0; font-size: 13px; color: #475569; font-style: italic;'>
-                    "Semua pesakit di atas dianggap telah bersetuju untuk menerima rawatan yang diberikan oleh perawat (Nurse) yang bertugas di rumah masing-masing."
+                    "All the above patients are deemed to have consented to receive the treatment provided by the healthcare provider (Nurse) who are on duty from their respective homes."
                 </p>
             </div>
         """, unsafe_allow_html=True)
     else:
-        st.info("ℹ️ Tiada rekod data klinikal, bacaan BP, atau cadangan diagnosa dijumpai dalam pangkalan data buat masa ini.")
+        st.info("ℹ️ No clinical data records, blood pressure readings, or diagnostic suggestions were found in the database at this time.")
 
 
 

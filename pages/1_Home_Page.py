@@ -36,27 +36,28 @@ st.markdown("""
 col1, col2 = st.columns(2, gap="large")
 
 with col1:
-    st.write("### Misi & Komitmen Kami")
+    st.write("### Our Mission & Commitment")
     st.write(
-        "Kami menyediakan perkhidmatan rawatan jururawat bertauliah terus ke rumah anda demi keselesaan fasa pemulihan. "
-        "Sistem digital kami membantu mengintegrasikan pemantauan kesihatan pesakit pasca-discaj secara berkala bagi had umur 18-59 tahun."
+        "We provide certified nursing care services directly to your home for a comfortable recovery phase. "
+        "Our digital system helps integrate regular health monitoring for post-discharge patients within the 18-59 age group."
     )
     
-    st.write("<br>### Perkhidmatan Klinikal Utama", unsafe_allow_html=True)
+    st.write("<br>### Core Clinical Services", unsafe_allow_html=True)
     st.markdown("""
-        <div class="service-box"><div class="service-title">Wound Care Management</div><p style='margin:0; font-size:14px; color:#475569;'>Penjagaan luka kronik pasca-pembedahan secara intensif di rumah pesakit.</p></div>
-        <div class="service-box"><div class="service-title">Vital Signs Tracking</div><p style='margin:0; font-size:14px; color:#475569;'>Pemeriksaan dan analisis berkala tekanan darah, kadar nadi, dan tahap gula darah.</p></div>
+        <div class="service-box"><div class="service-title">Wound Care Management</div><p style='margin:0; font-size:14px; color:#475569;'>Intensive chronic post-surgical wound care management at the patient's home.</p></div>
+        <div class="service-box"><div class="service-title">Vital Signs Tracking</div><p style='margin:0; font-size:14px; color:#475569;'>Regular assessment and analysis of blood pressure, pulse rate, and blood sugar levels.</p></div>
     """, unsafe_allow_html=True)
 
 with col2:
-    st.write("### Hubungi Talian Sokongan")
+    st.write("### Contact Support Hotline")
     st.markdown("""
         <div style='background-color: #f8fafc; padding: 30px; border-radius: 8px; border: 1px solid #e2e8f0;'>
-            <h4 style='margin-top:0; color:#0f172a;'>Talian Pertanyaan Pusat 24 Jam</h4>
+            <h4 style='margin-top:0; color:#0f172a;'>24-Hour Central Inquiry Hotline</h4>
             <p style='font-size:26px; color:#dc2626; font-weight:bold; margin:10px 0;'>1-300-88-NURSE</p>
-            <p style='font-size:14px; color:#475569;'><b>Emel Rasmi:</b> admin@homenursing.com.my</p>
-            <p style='font-size:14px; color:#475569;'><b>Pejabat Utama:</b> Blok Kesihatan, Pusat Bandar Shah Alam, Selangor.</p>
+            <p style='font-size:14px; color:#475569;'><b>Official Email:</b> admin@homenursing.com.my</p>
+            <p style='font-size:14px; color:#475569;'><b>Main Office:</b> Health Block, Shah Alam City Centre, Selangor.</p>
         </div>
     """, unsafe_allow_html=True)
+
 
 

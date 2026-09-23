@@ -10,7 +10,6 @@ from email.mime.multipart import MIMEMultipart
 # DATABASE CONFIGURATION
 # =========================================================
 DB_FILE = "nursing_system.db"
-
 # =========================================================
 # LOAD .ENV
 # =========================================================
@@ -162,7 +161,7 @@ def initialize_db():
         cursor.execute("""
             INSERT INTO nurses (id, name, phone, email, zone)
             VALUES (?, ?, ?, ?, ?)
-        """, ("N001", "Nurse Aina", "0112223333", "", "Zon A"))
+        """, ("N001", "Nurse Aina", "0112223333", "", "Zone A"))
         
     # ENSURE NURSE N002
     cursor.execute("SELECT id FROM nurses WHERE id = ?", ("N002",))
@@ -170,7 +169,7 @@ def initialize_db():
         cursor.execute("""
             INSERT INTO nurses (id, name, phone, email, zone)
             VALUES (?, ?, ?, ?, ?)
-        """, ("N002", "Nurse Fatimah", "0144445555", "", "Zon B"))
+        """, ("N002", "Nurse Fatimah", "0144445555", "", "Zone B"))
         
     # FIX OLD NURSE NAMES
     cursor.execute("UPDATE nurses SET name = 'Nurse Aina' WHERE id = 'N001'")
@@ -180,7 +179,17 @@ def initialize_db():
     conn.close()
 
 # =========================================================
-# EMAIL CONFIGURATION & SENDER FUNCTION
+# TOP NAVBAR INJECTION 
+# =========================================================
+def inject_top_navbar(*args, **kwargs):
+    """
+    Dynamically receives any parameters (*args, **kwargs) so that no errors occur
+    when called from either the Admin Dashboard or the Nurse Dashboard.
+    """
+    pass
+
+# =========================================================
+# EMAIL CONFIGURATION & SENDER FUNCTION (FIXED GMAIL SMTP)
 # =========================================================
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
@@ -188,34 +197,29 @@ SMTP_PORT = 587
 def send_real_email_notification(recipient_email, subject, message):
     sender_email = os.getenv("HOME_NURSING_EMAIL")
     app_password = os.getenv("HOME_NURSING_APP_PASSWORD")
-
-    if not sender_email or not app_password:
-        # Jika .env belum lengkap, jalankan mod simulasi (Sangat berguna untuk pengujian lokal)
-        return (True, f"ℹ️ [Mod Simulasi] Notifikasi e-mel dihantar ke {recipient_email} (Sila isi .env untuk penghantaran sebenar).")
-
+    
+    if not sender_email:
+        return (False, "⚠️ HOME_NURSING_EMAIL has not been configured.")
+    if not app_password:
+        return (False, "⚠️ HOME_NURSING_APP_PASSWORD has not been configured.")
     if not recipient_email:
-        return (False, "Email penerima kosong.")
-
+        return (False, "⚠️ Recipient email is empty.")
+        
     try:
         msg = MIMEMultipart()
         msg["From"] = sender_email
         msg["To"] = recipient_email
         msg["Subject"] = subject
         msg.attach(MIMEText(message, "plain", "utf-8"))
-
-        # Menetapkan had masa (timeout) selama 5 saat supaya sistem tidak tergantung lama jika port disekat
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=5)
-        server.ehlo()
+        
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=20)
         server.starttls()
-        server.ehlo()
         server.login(sender_email, app_password)
         server.sendmail(sender_email, recipient_email, msg.as_string())
         server.quit()
-
-        return (True, f"✅ Email berjaya dihantar ke {recipient_email}")
+        return (True, f"✅ Email successfully sent to {recipient_email}")
     except Exception as e:
-        # JIKA GAGAL DISEKAT INTERNET CAMPUS: Jangan gagalkan sistem, tukar kepada simulasi laporan
-        return (True, f"ℹ️ [Mod Rangkaian Tersekat] Penilaian disimpan! E-mel disimulasikan ke {recipient_email} kerana port rangkaian disekat.")
+        return (False, f"⚠️ Email failed to send: {str(e)}")
 
 # =========================================================
 # PATIENT FUNCTIONS
@@ -236,300 +240,147 @@ def get_patients_df():
 
 def add_patient(pt_id, name, age, gender, phone, illness, email=""):
     if not (18 <= age <= 59):
-        return (False, "⚠️ Umur mestilah antara 18 hingga 59 tahun.")
-    
+        return (False, "⚠️ Age must be between 18 and 59 years old.")
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT id FROM patients WHERE id = ?", (pt_id,))
-        if cursor.fetchone() is not None:
-            return (False, f"⚠️ Ralat: ID Pesakit {pt_id} sudah wujud dalam sistem.")
-            
-        cursor.execute("""
-            INSERT INTO patients (id, name, age, gender, phone, email, illness, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'New Case')
-        """, (pt_id, name, age, gender, phone, email, illness))
+        cursor.execute("INSERT INTO patients (id, name, age, gender, phone, illness, email) VALUES (?,?,?,?,?,?,?)",
+                       (pt_id, name, age, gender, phone, illness, email))
         conn.commit()
-        return (True, f"✅ Pesakit {name} berjaya didaftarkan!")
-    except Exception as e:
-        return (False, f"❌ Gagal mendaftar pesakit: {str(e)}")
+        return (True, "✅ Patient registration successful.")
+    except sqlite3.IntegrityError:
+        return (False, "⚠️ Patient ID already exists.")
     finally:
         conn.close()
 
-# =========================================================
-# APPOINTMENT FUNCTIONS
-# =========================================================
 def add_appointment(patient_id, nurse_id, visit_date, visit_time, notes):
+    """
+    Saves an appointment record into the SQLite database.
+    Returns a tuple: (True/False, "Status message string")
+    """
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        date_str = str(visit_date)
         cursor.execute("""
             INSERT INTO appointments (patient_id, nurse_id, visit_date, visit_time, notes, status)
             VALUES (?, ?, ?, ?, ?, 'Scheduled')
-        """, (patient_id, nurse_id, str(visit_date), visit_time, notes))
+        """, (patient_id, nurse_id, date_str, visit_time, notes))
         conn.commit()
-        return (True, "✅ Jadual temujanji berjaya disimpan ke pangkalan data.")
+        return (True, "✅ Appointment successfully registered in the system calendar!")
     except Exception as e:
-        return (False, f"❌ Gagal menyimpan temujanji: {str(e)}")
+        return (False, f"⚠️ Failed to save appointment: {str(e)}")
     finally:
         conn.close()
 
-# =========================================================
-# NAVIGATION & UI HELPERS
-# =========================================================
-def inject_top_navbar(user_id=""):
-    st.markdown(f"""
-        <div style='background-color: #1E1E1E; padding: 12px; border-radius: 5px; margin-bottom: 20px; display: flex; justify-content: space-between;'>
-            <span style='color: white; font-weight: bold;'>🏥 A19 Home Nursing System</span>
-            <span style='color: #BBBBBB;'>Log Masuk: {user_id}</span>
-        </div>
-    """, unsafe_allow_html=True)
-    # =========================================================
-# TAMBAHAN UNTUK NURSE DASHBOARD
-# =========================================================
 def get_appointments_df():
     conn = get_connection()
     try:
         df = pd.read_sql_query("""
-            SELECT 
-                a.id, 
-                a.patient_id, 
-                p.name AS patient_name,
-                a.nurse_id, 
-                n.name AS nurse_name,
-                a.visit_date, 
-                a.visit_time, 
-                a.notes, 
-                a.status
-            FROM appointments a
-            LEFT JOIN patients p ON a.patient_id = p.id
-            LEFT JOIN nurses n ON a.nurse_id = n.id
-            ORDER BY a.visit_date ASC, a.visit_time ASC
+            SELECT id, patient_id, nurse_id, visit_date, visit_time, notes, status, created_at
+            FROM appointments
+            ORDER BY id ASC
         """, conn)
     except Exception:
-        df = pd.DataFrame(columns=[
-            "id", "patient_id", "patient_name", "nurse_id", 
-            "nurse_name", "visit_date", "visit_time", "notes", "status"
-        ])
+        df = pd.DataFrame(columns=["id", "patient_id", "nurse_id", "visit_date", "visit_time", "notes", "status", "created_at"])
     finally:
         conn.close()
     return df
-# =========================================================
-# TAMBAHAN UNTUK REKOD CHECK-IN JURURAWAT
-# =========================================================
-def get_checkins_df(nurse_id=None):
+def get_checkins_df(nurse_id):
     conn = get_connection()
     try:
-        if nurse_id:
-            df = pd.read_sql_query("""
-                SELECT id, nurse_id, patient_id, checkin_time, checkout_time, status
-                FROM checkins
-                WHERE nurse_id = ?
-                ORDER BY id DESC
-            """, conn, params=(nurse_id,))
-        else:
-            df = pd.read_sql_query("""
-                SELECT id, nurse_id, patient_id, checkin_time, checkout_time, status
-                FROM checkins
-                ORDER BY id DESC
-            """, conn)
+        df = pd.read_sql_query("SELECT id, nurse_id, patient_id, checkin_time, checkout_time, status FROM checkins WHERE nurse_id = ? ORDER BY id DESC", conn, params=(nurse_id,))
     except Exception:
         df = pd.DataFrame(columns=["id", "nurse_id", "patient_id", "checkin_time", "checkout_time", "status"])
     finally:
         conn.close()
     return df
-# =========================================================
-# TAMBAHAN UNTUK MEMO HOSPITAL
-# =========================================================
 def get_hospital_memos_df():
     conn = get_connection()
     try:
-        df = pd.read_sql_query("""
-            SELECT id, patient_id, nurse_id, provider_id, title, message, created_at
-            FROM hospital_memos
-            ORDER BY created_at DESC
-        """, conn)
+        df = pd.read_sql_query("SELECT id, patient_id, nurse_id, provider_id, title, message, created_at FROM hospital_memos ORDER BY id DESC", conn)
     except Exception:
         df = pd.DataFrame(columns=["id", "patient_id", "nurse_id", "provider_id", "title", "message", "created_at"])
     finally:
         conn.close()
     return df
-# =========================================================
-# TAMBAHAN UNTUK BORANG PENILAIAN JURURAWAT (ASSESSMENT)
-# =========================================================
-# =========================================================
-# TAMBAHAN UNTUK BORANG PENILAIAN JURURAWAT (VERSI PENUH)
-# =========================================================
-def add_assessment(patient_id, nurse_id, blood_pressure, pulse_rate, blood_sugar, wound_condition, nurse_memo, send_email=False):
+def add_checkin(nurse_id, patient_id, checkin_time):
     conn = get_connection()
     cursor = conn.cursor()
-    email_msg = "Pilihan e-mel tidak diaktifkan."
-    
     try:
-        # 1. Simpan data penilaian ke dalam database SQLite
+        cursor.execute("INSERT INTO checkins (nurse_id, patient_id, checkin_time, status) VALUES (?, ?, ?, 'Checked In')", (nurse_id, patient_id, checkin_time))
+        conn.commit()
+        return (True, "✅ Successfully checked in! Home visit session started.")
+    except Exception as e:
+        return (False, f"⚠️ Check-in failed: {str(e)}")
+    finally:
+        conn.close()
+def add_assessment(patient_id, nurse_id, blood_pressure, pulse_rate, blood_sugar, wound_condition, nurse_memo, send_email=True):
+    conn = get_connection()
+    cursor = conn.cursor()
+    email_results = []
+    try:
         cursor.execute("""
             INSERT INTO assessments (patient_id, nurse_id, blood_pressure, pulse_rate, blood_sugar, wound_condition, nurse_memo)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (patient_id, nurse_id, blood_pressure, int(pulse_rate), float(blood_sugar), wound_condition, nurse_memo))
         conn.commit()
         
-        # 2. Proses penghantaran e-mel jika parameter 'send_email' diaktifkan (True)
+        main_msg = "✅ Assessment metrics saved successfully to the system database."
+        
         if send_email:
             cursor.execute("SELECT name, email FROM patients WHERE id = ?", (patient_id,))
-            patient_data = cursor.fetchone()
+            patient_row = cursor.fetchone()
             
-            if patient_data and patient_data[1]:
-                p_name = patient_data[0]
-                p_email = patient_data[1]
+            if patient_row and patient_row[1]:
+                p_name = patient_row[0]
+                p_email = patient_row[1]
                 
-                subject = f"🏥 Laporan Penilaian Kesihatan Rumah: {p_name}"
-                body = f"""
-                Salam sejahtera,
-
-                Berikut adalah ringkasan penilaian kesihatan terkini bagi pesakit {p_name}:
-                - Tekanan Darah: {blood_pressure}
-                - Kadar Nadi: {pulse_rate} bpm
-                - Tahap Gula: {blood_sugar} mmol/L
-                - Keadaan Luka: {wound_condition}
+                email_subject = f"📋 Home Nursing Care Assessment Report - Patient ID: {patient_id}"
+                email_body = (
+                    f"Hello {p_name},\n\n"
+                    f"Your home nursing care assessment report has been updated successfully.\n\n"
+                    f"Assessment Details Summary:\n"
+                    f"• Blood Pressure: {blood_pressure} mmHg\n"
+                    f"• Pulse Rate: {pulse_rate} bpm\n"
+                    f"• Blood Sugar Level: {blood_sugar} mmol/L\n"
+                    f"• Wound Condition Status: {wound_condition}\n"
+                    f"• Care Practitioner Memo: {nurse_memo}\n\n"
+                    f"Thank you,\nHome Healthcare System Management Team"
+                )
                 
-                Nota Jururawat:
-                {nurse_memo}
-
-                Terima kasih.
-                """
-                success, status_txt = send_real_email_notification(p_email, subject, body)
-                email_msg = status_txt
+                email_ok, email_msg = send_real_email_notification(p_email, email_subject, email_body)
+                email_results.append(email_msg)
             else:
-                email_msg = "⚠️ E-mel gagal dihantar kerana rekod e-mel pesakit kosong."
-
-        # Kunci penyelesaian: Letakkan email_msg di dalam senarai [] supaya tidak pecah huruf ke bawah
-        return (True, "✅ Rekod penilaian berjaya disimpan!", [email_msg])
-        
+                email_results.append("⚠️ Email not sent: Patient profile has no email address registered.")
+                
+        return (True, main_msg, email_results)
     except Exception as e:
-        return (False, f"❌ Gagal menyimpan penilaian: {str(e)}", [f"Ralat sistem: {str(e)}"])
+        return (False, f"⚠️ Failed to save assessment metrics: {str(e)}", email_results)
     finally:
         conn.close()
-
-        # =========================================================
-# TAMBAHAN UNTUK PROSES CHECK-IN JURURAWAT
-# =========================================================
-def add_checkin(nurse_id, patient_id, checkin_time):
-    conn = get_connection()
-    cursor = conn.cursor()
-    try:
-        # Masukkan rekod check-in baharu dengan status lalai 'Checked In'
-        cursor.execute("""
-            INSERT INTO checkins (nurse_id, patient_id, checkin_time, status)
-            VALUES (?, ?, ?, 'Checked In')
-        """, (nurse_id, patient_id, str(checkin_time)))
-        conn.commit()
-        return (True, "✅ Berjaya log masuk (Check-In) untuk lawatan pesakit!")
-    except Exception as e:
-        return (False, f"❌ Gagal melakukan log masuk: {str(e)}")
-    finally:
-        conn.close()
-        # =========================================================
-# TAMBAHAN UNTUK PROSES CHECK-OUT JURURAWAT
-# =========================================================
-def checkout(checkin_id, checkout_time):
-    conn = get_connection()
-    cursor = conn.cursor()
-    try:
-        # Kemaskini rekod berdasarkan ID check-in (cid) yang dihantar oleh dashboard
-        cursor.execute("""
-            UPDATE checkins
-            SET checkout_time = ?, status = 'Checked Out'
-            WHERE id = ?
-        """, (str(checkout_time), checkin_id))
-        conn.commit()
-        return (True, "✅ Berjaya log keluar (Check-Out)! Lawatan pesakit telah selesai direkodkan.")
-    except Exception as e:
-        return (False, f"❌ Gagal melakukan log keluar: {str(e)}")
-    finally:
-        conn.close()
-        # =========================================================
-# TAMBAHAN UNTUK SEJARAH PENILAIAN (HEALTHCARE PROVIDER)
-# =========================================================
 def get_assessments_df():
     conn = get_connection()
     try:
-        df = pd.read_sql_query("""
-            SELECT 
-                a.id, 
-                a.patient_id, 
-                p.name AS patient_name,
-                a.nurse_id, 
-                n.name AS nurse_name,
-                a.blood_pressure, 
-                a.pulse_rate, 
-                a.blood_sugar, 
-                a.wound_condition, 
-                a.nurse_memo, 
-                a.created_at
-            FROM assessments a
-            LEFT JOIN patients p ON a.patient_id = p.id
-            LEFT JOIN nurses n ON a.nurse_id = n.id
-            ORDER BY a.created_at DESC
-        """, conn)
+        df = pd.read_sql_query("SELECT id, patient_id, nurse_id, blood_pressure, pulse_rate, blood_sugar, wound_condition, nurse_memo, created_at FROM assessments ORDER BY id DESC", conn)
     except Exception:
-        df = pd.DataFrame(columns=[
-            "id", "patient_id", "patient_name", "nurse_id", "nurse_name",
-            "blood_pressure", "pulse_rate", "blood_sugar", "wound_condition", 
-            "nurse_memo", "created_at"
-        ])
+        df = pd.DataFrame(columns=["id", "patient_id", "nurse_id", "blood_pressure", "pulse_rate", "blood_sugar", "wound_condition", "nurse_memo", "created_at"])
     finally:
         conn.close()
     return df
-    # =========================================================
-# TAMBAHAN UNTUK MENAMBAH MEMO HOSPITAL & NOTIFIKASI E-MEL
-# =========================================================
 def add_hospital_memo(patient_id, nurse_id, provider_id, title, message):
     conn = get_connection()
     cursor = conn.cursor()
-    email_msg = "Tiada e-mel dihantar."
-    
     try:
-        # 1. Simpan rekod memo ke dalam jadual hospital_memos
         cursor.execute("""
-            INSERT INTO hospital_memos (patient_id, nurse_id, provider_id, title, message)
+            INSERT INTO hospital_memos (patient_id, nurse_id, provider_id, title, message) 
             VALUES (?, ?, ?, ?, ?)
         """, (patient_id, nurse_id, provider_id, title, message))
         conn.commit()
-        
-        # 2. Dapatkan maklumat e-mel jururawat yang ditugaskan untuk menghantar notifikasi
-        cursor.execute("SELECT name, email FROM nurses WHERE id = ?", (nurse_id,))
-        nurse_data = cursor.fetchone()
-        
-        if nurse_data and nurse_data[1]:
-            n_name = nurse_data[0]
-            n_email = nurse_data[1]
-            
-            subject = f"🔔 Arahan/Memo Hospital Baharu: {title}"
-            body = f"""
-            Salam sejahtera {n_name},
-
-            Anda telah menerima satu memo arahan baharu daripada Healthcare Provider ({provider_id}) untuk Pesakit ID: {patient_id}.
-
-            Tajuk: {title}
-            Mesej/Arahan:
-            {message}
-
-            Sila ambil tindakan sewajarnya semasa lawatan seterusnya.
-            Terima kasih.
-            """
-            # Panggil fungsi emel sedia ada di database.py
-            success, email_msg = send_real_email_notification(n_email, subject, body)
-        else:
-            email_msg = "ℹ️ Memo disimpan, tetapi e-mel tidak dihantar kerana alamat e-mel jururawat kosong atau tidak dijumpai."
-
-        return (True, "✅ Memo hospital berjaya disimpan dan direkodkan!", email_msg)
-        
+        return (True, "✅ Hospital memo successfully registered and broadcasted to the system.", [])
     except Exception as e:
-        return (False, f"❌ Gagal menyimpan memo hospital: {str(e)}", f"Ralat: {str(e)}")
+        return (False, f"⚠️ Failed to save hospital memo: {str(e)}", [])
     finally:
         conn.close()
-
-
-
 
 

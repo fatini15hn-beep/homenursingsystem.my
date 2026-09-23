@@ -27,8 +27,15 @@ if "user_role" not in st.session_state:
 if "username_display" not in st.session_state:
     st.session_state.username_display = None
 
-if not st.session_state.logged_in or st.session_state.user_role != "Admin":
-    st.error("🚫 Akses Disekat! Halaman ini hanya boleh dibuka oleh Admin.")
+# =========================================================
+# ACCESS CONTROL
+# =========================================================
+if (
+    not st.session_state.get("logged_in")
+    or st.session_state.get("user_role") != "Admin"
+):
+    # TUKAR AYAT DI SINI SAHAJA UNTUK MENGIKUT GAMBAR CONTOH
+    st.error("Access Denied! Please log in as an admin to view treatment records.")
     st.stop()
 
 # =========================================================
@@ -41,36 +48,36 @@ st.markdown("---")
 # 3 MAIN MANAGEMENT TABS
 # =========================================================
 menu = st.tabs([
-    "Pengurusan Pesakit",
-    "Pengurusan Jururawat",
-    "🗓️ Jadual Temujanji Lawatan"
+    "Patient Managementt",
+    "Nursing Management",
+    "🗓️ Visit Appointment Schedule"
 ])
 
 # =========================================================
 # TAB 1 - PATIENT MANAGEMENT
 # =========================================================
 with menu[0]:
-    st.write("### Pendaftaran Pesakit Pasca-Discaj Baru")
-    st.info("Semua maklumat pendaftaran pesakit wajib diisi oleh Admin mengikut protokol pusat.")
+    st.write("### New Post-Discharge Patient Registration")
+    st.info("All patient registration information must be entered by the Admin in accordance with center protocols.")
 
     with st.form("admin_add_patient", clear_on_submit=True):
-        pt_id = st.text_input("ID Pesakit", placeholder="Contoh: P004")
-        name = st.text_input("Nama Penuh Pesakit")
+        pt_id = st.text_input("ID Petient", placeholder="Contoh: P004")
+        name = st.text_input("Patient Full Name")
         
         # ➕ TAMBAH RUANGAN EMAIL PESAKIT DI SINI:
-        email = st.text_input("Email Pesakit", placeholder="Contoh: pesakit@gmail.com")
+        email = st.text_input("Email Patient", placeholder="Contoh: patient@gmail.com")
         
-        age = st.number_input("Umur Pesakit (18 - 59 tahun)", min_value=18, max_value=59, value=25)
-        gender = st.selectbox("Jantina", ["Lelaki", "Perempuan"])
-        phone = st.text_input("Nombor Telefon Bimbit", placeholder="Contoh: 0123456789")
-        illness = st.text_area("Jenis Penyakit / Diagnosis Pesakit")
-        submitted = st.form_submit_button("Daftar Masuk Pesakit", type="primary")
+        age = st.number_input("Patient Age (18 - 59 Years old)", min_value=18, max_value=59, value=25)
+        gender = st.selectbox("Gender", ["Lelaki", "Perempuan"])
+        phone = st.text_input("Mobile Phone Number", placeholder="Contoh: 0123456789")
+        illness = st.text_area("Type of Disease / Patient Diagnosis")
+        submitted = st.form_submit_button("Patient Check-in", type="primary")
 
         if submitted:
             if pt_id and name and phone and illness:
                 clean_phone = phone.strip()
                 if not clean_phone.isdigit() or not (10 <= len(clean_phone) <= 11):
-                    st.error("⚠️ Ralat! Nombor telefon Malaysia mestilah antara 10-11 digit.")
+                    st.error("⚠️ Error! Malaysian phone numbers must be between 10 and 11 digits long.")
                 else:
                     # ➕ Menghantar nilai 'email' yang diisi ke fungsi database
                     success, msg = db.add_patient(pt_id, name, age, gender, clean_phone, illness, email)
@@ -80,22 +87,22 @@ with menu[0]:
                     else:
                         st.error(msg)
             else:
-                st.warning("⚠️ Sila lengkapkan kesemua ruangan maklumat!")
+                st.warning("⚠️ Please complete all information fields!")
 
     st.markdown("---")
-    st.write("### 📊 Pangkalan Data Senarai Pesakit Berdaftar")
+    st.write("### 📊 Registered Patient List Database")
 
     df_patients = db.get_patients_df()
     if not df_patients.empty:
         st.dataframe(df_patients, use_container_width=True, hide_index=True)
     else:
-        st.info("Tiada pesakit berdaftar buat masa ini.")
+        st.info("There are no registered patients at this time.")
 
 # =========================================================
 # TAB 2 - NURSE MANAGEMENT
 # =========================================================
 with menu[1]:
-    st.write("### Pangkalan Data Kakitangan Jururawat")
+    st.write("### Nursing Staff Database")
 
     # Paparkan Maklumat Fixed bagi Nurse Aina
     st.write("#### 👩‍⚕️ Nurse Aina")
@@ -120,14 +127,14 @@ with menu[1]:
         st.write("**Zone:** Zon B")
 
     st.markdown("---")
-    st.success("✓ Jumlah Jururawat Berdaftar: 2")
+    st.success("✓ Number of Registered Nurses: 2")
 
 # =========================================================
 # TAB 3 - APPOINTMENT MANAGEMENT
 # =========================================================
 with menu[2]:
-    st.write("### 📅 Tetapkan Jadual & Tarikh Lawatan Jururawat ke Rumah Pesakit")
-    st.info("Admin boleh menetapkan jadual lawatan untuk Nurse Aina atau Nurse Fatimah.")
+    st.write("### 📅 Schedule Nurse Home Visits")
+    st.info("The admin can set a visit schedule for Nurse Aina or Nurse Fatimah")
 
     df_patients = db.get_patients_df()
     nurse_options = {
@@ -136,22 +143,22 @@ with menu[2]:
     }
 
     if df_patients.empty:
-        st.warning("Pangkalan data pesakit kosong. Sila daftar pesakit terlebih dahulu di Tab 1.")
+        st.warning("The patient database is empty. Please register the patient first in Tab 1..")
     else:
         patient_options = {row["name"]: row["id"] for _, row in df_patients.iterrows()}
 
         with st.form("add_appointment_form", clear_on_submit=True):
-            selected_pt_name = st.selectbox("Pilih Pesakit Pasca-Discaj:", list(patient_options.keys()))
-            selected_nurse_name = st.selectbox("Tugaskan Jururawat:", list(nurse_options.keys()))
-            visit_date = st.date_input("Pilih Tarikh Lawatan:", datetime.date.today())
-            visit_time = st.selectbox("Pilih Slot Waktu Syif:", [
-                "09:00 AM (Pagi)",
-                "11:30 AM (Pagi)",
-                "02:30 PM (Tengah Hari)",
-                "05:00 PM (Lewat Petang)"
+            selected_pt_name = st.selectbox("Select Post-Discharge Patients:", list(patient_options.keys()))
+            selected_nurse_name = st.selectbox("Assign a nurse:", list(nurse_options.keys()))
+            visit_date = st.date_input("Select Visit Date:", datetime.date.today())
+            visit_time = st.selectbox("Select Shift Time Slot:", [
+                "09:00 AM (Morning)",
+                "11:30 AM (Morning)",
+                "02:30 PM (Midday)",
+                "05:00 PM (Late Afternoon)"
             ])
-            notes = st.text_area("Nota Persediaan Rawatan")
-            submitted = st.form_submit_button("Sahkan & Daftar Temujanji Kalendar", type="primary")
+            notes = st.text_area("Treatment Preparation Notes")
+            submitted = st.form_submit_button("Confirm & Schedule Calendar Appointment", type="primary")
 
             if submitted:
                 p_id = patient_options[selected_pt_name]
@@ -161,8 +168,8 @@ with menu[2]:
                 success, msg = db.add_appointment(p_id, n_id, visit_date, visit_time, notes)
 
                 if success:
-                    notif_title = "📅 Jadual Temujanji Lawatan Baru"
-                    notif_msg = f"Anda telah ditugaskan untuk melawat pesakit {selected_pt_name} pada {visit_date} ({visit_time}). Nota: {notes}"
+                    notif_title = "📅 New Visit Appointment Schedule"
+                    notif_msg = f"You have been assigned to visit the patient. {selected_pt_name} on {visit_date} ({visit_time}). Notes: {notes}"
                     
                     if hasattr(db, "create_notification"):
                         db.create_notification(user_id=n_id, title=notif_title, message=notif_msg, notification_type="appointment")
@@ -196,10 +203,10 @@ with menu[2]:
                             visit_time=visit_time,
                             notes=notes
                         )
-                        st.success(f"{msg} Serta e-mel notifikasi tugasan berjaya dihantar ke Nurse {nurse_display_name}!")
+                        st.success(f"{msg} And the task notification email was successfully sent to the nurse. {nurse_display_name}!")
                     except Exception as e:
                         st.success(msg)
-                        st.warning(f"⚠️ Jadual disimpan tetapi e-mel gagal dihantar kepada jururawat: {str(e)}")
+                        st.warning(f"⚠️ The schedule was saved, but the email failed to send to the nurse.: {str(e)}")
                     st.rerun()
                 else:
                     st.error(msg)

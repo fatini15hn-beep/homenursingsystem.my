@@ -24,18 +24,18 @@ if "username_display" not in st.session_state:
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
 
-st.write("## Log Masuk Portal Sistem")
+st.write("## System Portal Login")
 st.markdown("---")
 
 # =========================================================
-# JIKA PENGGUNA SUDAH AKTIF LOG MASUK (PAUTAN PINTAS KEMBALI)
+# IF USER IS ALREADY LOGGED IN (SHORTCUT LINK BACK)
 # =========================================================
 if st.session_state.logged_in:
-    st.info(f"✨ Sesi Aktif: Anda telah log masuk sebagai **{st.session_state.user_role}** ({st.session_state.username_display}).")
+    st.info(f"✨ Active Session: You are logged in as **{st.session_state.user_role}** ({st.session_state.username_display}).")
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Masuk Ke Dashboard Anda ➡️", type="primary"):
+        if st.button("Enter Your Dashboard ➡️", type="primary"):
             if st.session_state.user_role == "Admin":
                 st.switch_page("pages/3_Admin_Dashboard.py")
             elif st.session_state.user_role == "Nurse":
@@ -46,7 +46,7 @@ if st.session_state.logged_in:
                 st.switch_page("pages/6_HealthcareProvider_Dashboard.py")
     
     with col2:
-        if st.button("Log Keluar Semasa", type="secondary"):
+        if st.button("Logout Current Session", type="secondary"):
             st.session_state.logged_in = False
             st.session_state.user_role = None
             st.session_state.username_display = None
@@ -54,14 +54,14 @@ if st.session_state.logged_in:
             st.rerun()
 
 # =========================================================
-# BORANG LOG MASUK UTAMA
+# MAIN LOGIN FORM
 # =========================================================
 else:
-    username = st.text_input("Username (Nama Anda)")
+    username = st.text_input("Username (Your Name)")
     password = st.text_input("Password", type="password")
-    role = st.selectbox("Pilih Peranan Anda", ["Admin", "Nurse", "Patient", "Healthcare Provider"])
+    role = st.selectbox("Select Your Role", ["Admin", "Nurse", "Patient", "Healthcare Provider"])
 
-    if st.button("Log Masuk", type="primary"):
+    if st.button("Login", type="primary"):
         if username and password:
             
             # --- 1. ADMIN LOGIN ---
@@ -71,11 +71,11 @@ else:
                     st.session_state.user_role = "Admin"
                     st.session_state.username_display = "Ali"
                     st.session_state.user_id = "ADMIN_ALI"
-                    st.success("Akses Admin diberikan!")
+                    st.success("Admin access granted!")
                     
                     st.switch_page("pages/3_Admin_Dashboard.py")
                 else:
-                    st.error("Ralat! Hanya Admin bernama 'Ali' dengan password sah dibenarkan.")
+                    st.error("Error! Only the Admin named 'Ali' with a valid password is allowed.")
 
             # --- 2. NURSE LOGIN ---
             elif role == "Nurse":
@@ -84,7 +84,7 @@ else:
                     st.session_state.user_role = "Nurse"
                     st.session_state.username_display = "Aina"
                     st.session_state.user_id = "N001"
-                    st.success("Akses Jururawat diberikan! Selamat bertugas Nurse Aina.")
+                    st.success("Nurse access granted! Have a good shift, Nurse Aina.")
                     
                     st.switch_page("pages/4_Nurse_Dashboard.py")
                 elif username.lower() == "fatimah" and password == "1234":
@@ -92,13 +92,13 @@ else:
                     st.session_state.user_role = "Nurse"
                     st.session_state.username_display = "Fatimah"
                     st.session_state.user_id = "N002"
-                    st.success("Akses Jururawat diberikan! Selamat bertugas Nurse Fatimah.")
+                    st.success("Nurse access granted! Have a good shift, Nurse Fatimah.")
                     
                     st.switch_page("pages/4_Nurse_Dashboard.py")
                 else:
-                    st.error("Ralat! Hanya Jururawat 'Aina' atau 'Fatimah' yang berdaftar dibenarkan.")
+                    st.error("Error! Only registered Nurses 'Aina' or 'Fatimah' are allowed.")
 
-            # --- 3. DYNAMIC PATIENT LOGIN (Mengambil Data dari SQLite) ---
+            # --- 3. DYNAMIC PATIENT LOGIN (Fetching Data from SQLite) ---
             elif role == "Patient":
                 df_pt = db.get_patients_df()
                 match = df_pt[df_pt['name'].str.lower() == username.lower()]
@@ -109,11 +109,11 @@ else:
                     st.session_state.user_role = "Patient"
                     st.session_state.username_display = patient_data['name']
                     st.session_state.user_id = patient_data['id']
-                    st.success(f"Akses Pesakit diberikan! Selamat datang {patient_data['name']}.")
+                    st.success(f"Patient access granted! Welcome, {patient_data['name']}.")
                     
                     st.switch_page("pages/5_Patient_Dashboard.py")
                 else:
-                    st.error("Ralat! Nama pesakit tidak dijumpai dalam pangkalan data atau kata laluan salah.")
+                    st.error("Error! Patient name not found in the database or incorrect password.")
                     
             # --- 4. HEALTHCARE PROVIDER LOGIN ---
             elif role == "Healthcare Provider":
@@ -122,10 +122,10 @@ else:
                     st.session_state.user_role = "Healthcare Provider"
                     st.session_state.username_display = "Shahmi"
                     st.session_state.user_id = "H001"
-                    st.success("Akses Healthcare Provider Shahmi diberikan!")
+                    st.success("Healthcare Provider Shahmi access granted!")
                     
                     st.switch_page("pages/6_HealthcareProvider_Dashboard.py")
                 else:
-                    st.error("Ralat! Username atau password Healthcare Provider salah.")
+                    st.error("Error! Incorrect Healthcare Provider username or password.")
         else:
-            st.warning("⚠️ Sila isi ruangan Username dan Password terlebih dahulu.")
+            st.warning("⚠️ Please fill in both Username and Password fields first.")
