@@ -382,5 +382,25 @@ def add_hospital_memo(patient_id, nurse_id, provider_id, title, message):
         return (False, f"⚠️ Failed to save hospital memo: {str(e)}", [])
     finally:
         conn.close()
+# =========================================================
+# CHECK-OUT NURSE
+# =========================================================
+def checkout(checkin_id, checkout_time):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE checkins
+            SET checkout_time = ?, status = 'Checked Out'
+            WHERE id = ?
+        """, (str(checkout_time), checkin_id))
+        
+        conn.commit()
+        return (True, "✅ Successfully checked out! Home visit session has been completed.")
+    except Exception as e:
+        return (False, f"⚠️ Check-out failed: {str(e)}")
+    finally:
+        conn.close()
 
 
